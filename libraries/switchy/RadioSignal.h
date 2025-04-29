@@ -14,6 +14,10 @@ public:
     bool IsOn = false;
 
     bool IsValid() const { return isValid; }
+    
+    bool IsHardcoded() {
+        return (Payload == 14123777 || Payload == 7848590);
+    }
 
     // === Factory: Generate new outgoing signal ===
     static RadioSignal Create(bool isOn = false) {

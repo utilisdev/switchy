@@ -33,7 +33,8 @@ public:
         }
 
         if (IsRepeatedSignal(signal)) return;
-        if (IsDuplicateSignal(signal)) return;
+        
+        if (!signal.IsHardcoded() && IsDuplicateSignal(signal)) return;
 
         signal.Print(); // Show valid, accepted signal
 

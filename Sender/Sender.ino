@@ -4,7 +4,8 @@
 #include "RotaryTrigger.h"
 #include "RadioSignal.h"
 
-// #define DEBUG
+//#define DEBUG
+//#define REMOTE_CTRL_SETUP
 
 #ifdef DEBUG
 RotaryTrigger rotaryTrigger;
@@ -42,6 +43,15 @@ void setup() {
 }
 
 void loop() {
+
+#ifdef REMOTE_CTRL_SETUP
+  // This is only used to send a signal continuously for setting-up a remote control.
+  delay(random(0, 101));
+  static RadioSignal sig = RadioSignal::Create(false);
+  sig.Send(&sender);
+  return;
+#endif
+
   // === Check power state ===
   // If power is present → send ON signal
   // If power is lost → send OFF signal
