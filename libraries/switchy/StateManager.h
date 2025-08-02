@@ -23,21 +23,22 @@ public:
 
         // 2. Rotary toggle
         if (rotaryTrigger->HasChanged()) {
-            UpdateState(!currentStateOn);
+            UpdateState(!globalOn);
             return;
         }
 
         // 3. Radio-triggered update
         radioTrigger->Evaluate();
         if (radioTrigger->HasChanged()) {
-            UpdateState(radioTrigger->IsOn());
+            UpdateState();
         }
     }
 
     // === Get current ON/OFF state ===
-    bool IsOn() const {
-        return currentStateOn;
-    }
+    bool Unit1IsOn() const { return unit1On; }
+    bool Unit2IsOn() const { return unit2On; }
+    bool Unit3IsOn() const { return unit3On; }
+    bool Unit4IsOn() const { return unit4On; }
 
     // === Check if state changed since last Evaluate() ===
     bool StateChanged() {
@@ -49,26 +50,107 @@ public:
 private:
     RadioTrigger* radioTrigger = nullptr;
     RotaryTrigger* rotaryTrigger = nullptr;
-
-    bool currentStateOn = false;
+    
+    bool unit1On = false; 
+    bool unit2On = false; 
+    bool unit3On = false; 
+    bool unit4On = false; 
+    bool globalOn = false;
+    
     bool stateChanged = false;
 
     bool delayActive = false;
     unsigned long delayUntil = 0;
 
     // === Central state update handler ===
-    void UpdateState(bool newState) {
-        if (newState == currentStateOn) return;
-
-        currentStateOn = newState;
-
-        if (newState) {
-            CancelDelay();
+    void UpdateState() {
+        
+        if (radioTrigger->Target == Config::Unit::TargetGlobal) {
+            if(radioTrigger->State == Config::State::Toggle) {
+                unit1On = unit2On = unit3On = unit4On = globalOn = !globalOn;
+            }
+            if(radioTrigger->State == Config::State::On) {
+                unit1On = unit2On = unit3On = unit4On = globalOn = true;
+            }
+            if(radioTrigger->State == Config::State::Off) {
+                unit1On = unit2On = unit3On = unit4On = globalOn = false;
+            }
             stateChanged = true;
-        } else {
-            StartDelay();
         }
+        
+        if (radioTrigger->Target == Config::Unit::Target1) {
+            if(radioTrigger->State == Config::State::Toggle) {
+                unit1On = !unit1On;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::On && !unit1On) {
+                unit1On = true;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::Off && unit1On) {
+                unit1On = false;
+                stateChanged = true;
+            }
+        }
+        
+        if (radioTrigger->Target == Config::Unit::Target2) {
+            if(radioTrigger->State == Config::State::Toggle) {
+                unit2On = !unit2On;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::On && !unit2On) {
+                unit2On = true;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::Off && unit2On) {
+                unit2On = false;
+                stateChanged = true;
+            }
+        }
+        
+        if (radioTrigger->Target == Config::Unit::Target3) {
+            if(radioTrigger->State == Config::State::Toggle) {
+                unit3On = !unit3On;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::On && !unit3On) {
+                unit3On = true;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::Off && unit3On) {
+                unit3On = false;
+                stateChanged = true;
+            }
+        }
+        
+        if (radioTrigger->Target == Config::Unit::Target4) {
+            if(radioTrigger->State == Config::State::Toggle) {
+                unit4On = !unit4On;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::On && !unit4On) {
+                unit4On = true;
+                stateChanged = true;
+            }
+            if(radioTrigger->State == Config::State::Off && unit4On) {
+                unit4On = false;
+                stateChanged = true;
+            }
+        }
+
+        // if (newState) {
+        //     CancelDelay();
+        //     stateChanged = true;
+        // } else {
+        //     StartDelay();
+        // }
     }
+    
+    void UpdateState(bool on) {
+        unit1On = unit2On = unit3On = unit4On = globalOn = on;
+        stateChanged = true;
+    }
+    
 
     void StartDelay() {
         delayActive = true;

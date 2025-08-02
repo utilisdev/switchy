@@ -1,3 +1,8 @@
+//#define DEBUG
+//#define DEVICE_1
+//#define DEVICE_2
+#define DEVICE_3
+
 #include <RCSwitch.h>
 
 #include "Config.h"
@@ -6,7 +11,6 @@
 #include "RadioTrigger.h"
 #include "Relay.h"
 
-// #define DEBUG
 
 // === RF Receiver ===
 RCSwitch receiver = RCSwitch();
@@ -30,7 +34,10 @@ void setup() {
 
   // Setup output relays
   relay1.Setup(Config::Relay::Relay1Pin, "Relay 1");
-  relay2.Setup(Config::Relay::Relay2Pin, "Relay 2");
+  #ifdef DEVICE_3
+    relay2.Setup(Config::Relay::Relay2Pin, "Relay 2");
+  #endif
+  
 
   // Setup state manager with trigger sources
   stateManager.Setup(&radioTrigger, &rotaryTrigger);
@@ -48,16 +55,34 @@ void loop() {
 
   if (!stateManager.StateChanged()) return;
 
-  if (!stateManager.IsOn()) {
-    relay1.TurnOff();
-    relay2.TurnOff();
-    return;
-  }
+  #ifdef DEVICE_1
+    if (stateManager.Unit1IsOn()) {
+      relay1.TurnOn();
+    } else {
+      relay1.TurnOff();
+    }
+  #endif
+  
+  #ifdef DEVICE_2
+    if (stateManager.Unit2IsOn()) {
+      relay1.TurnOn();
+    } else {
+      relay1.TurnOff();
+    }
+  #endif
 
-  // Toggle relays: relay2 is backup if relay1 is already on
-  if (!relay1.IsOn()) {
-    relay1.TurnOn();
-  } else {
-    relay2.TurnOn();
-  }
+  #ifdef DEVICE_3
+    if (stateManager.Unit3IsOn()) {
+      relay1.TurnOn();
+    } else {
+      relay1.TurnOff();
+    }
+
+    if (stateManager.Unit4IsOn()) {
+      relay2.TurnOn();
+    } else {
+      relay2.TurnOff();
+    }
+  #endif
+  
 }

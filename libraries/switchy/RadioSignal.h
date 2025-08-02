@@ -12,19 +12,29 @@ public:
     unsigned long Channel;
     unsigned int Size = 32; // Default payload size in bits
     bool IsOn = false;
+    bool IsToggle = false;
 
     bool IsValid() const { return isValid; }
-    
-    bool IsHardcoded() {
-        return (Payload == 14123777 || Payload == 7848590);
-    }
 
     // === Factory: Generate new outgoing signal ===
-    static RadioSignal Create(bool isOn = false) {
+    static RadioSignal Create(uint8_t type = Config::Radio::ChannelOn) {
         RadioSignal signal;
 
-        signal.IsOn = isOn;
-        signal.Channel = isOn ? Config::Radio::ChannelOn : Config::Radio::ChannelOff;
+        if(type == Config::Radio::ChannelOn) {
+            signal.Channel = Config::Radio::ChannelOn;
+            signal.IsOn = true;
+            signal.IsToggle = false;
+        }
+        if(type == Config::Radio::ChannelOff) {
+            signal.Channel = Config::Radio::ChannelOff;
+            signal.IsOn = false;
+            signal.IsToggle = false;
+        }
+        if(type == Config::Radio::ChannelToggle) {
+            signal.Channel = Config::Radio::ChannelToggle;
+            signal.IsOn = false;
+            signal.IsToggle = true;
+        }
         signal.Payload = GeneratePayload();
         signal.isValid = true;
 
@@ -47,6 +57,7 @@ public:
         receiver->resetAvailable();
 
         signal.IsOn = (signal.Channel == Config::Radio::ChannelOn);
+        signal.IsToggle = (signal.Channel == Config::Radio::ChannelToggle);
         signal.isValid = IsValidChannel(signal.Channel) && IsValidPayload(signal.Payload);
 
         return signal;
@@ -75,7 +86,14 @@ public:
         Serial.print(" / Valid: ");
         Serial.print(isValid ? "True" : "False");
         Serial.print(" / On: ");
-        Serial.println(IsOn ? "True" : "False");
+        Serial.print(IsOn ? "True" : "False");
+        Serial.print(" / Toggle: ");
+        Serial.print(IsToggle ? "True" : "False");
+        if(Payload == Config::Unit::UnitId1) { Serial.println(" / Target: Unit 1"); } else
+        if(Payload == Config::Unit::UnitId2) { Serial.println(" / Target: Unit 2"); } else
+        if(Payload == Config::Unit::UnitId3) { Serial.println(" / Target: Unit 3"); } else
+        if(Payload == Config::Unit::UnitId4) { Serial.println(" / Target: Unit 4"); } else
+        { Serial.println(" / Target: Global"); }
     }
 
 private:
@@ -83,7 +101,9 @@ private:
 
     // === Internal helper: Check channel validity ===
     static bool IsValidChannel(unsigned long channel) {
-        return channel == Config::Radio::ChannelOn || channel == Config::Radio::ChannelOff;
+        return channel == Config::Radio::ChannelOn || 
+               channel == Config::Radio::ChannelOff || 
+               channel == Config::Radio::ChannelToggle;
     }
 
     // === Internal helper: Check payload contains embedded ID ===
@@ -106,7 +126,7 @@ private:
         unsigned long mask = ~(0xFFUL << bitOffset);
         randSignal &= mask;
 
-        // Insert device ID
+        // Insert ID
         randSignal |= ((unsigned long)Config::Radio::ComId << bitOffset);
 
         return randSignal;

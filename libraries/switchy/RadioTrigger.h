@@ -6,6 +6,10 @@
 
 class RadioTrigger {
 public:
+
+    uint8_t Target = Config::Unit::TargetGlobal;
+    uint8_t State = Config::State::Off;
+
     // === Setup the RF receiver ===
     void Setup() {
         receiver.enableReceive(Config::Radio::ReceiverIrq);
@@ -17,31 +21,27 @@ public:
         hasChanged = false;
         return true;
     }
-
-    // === Get the last known signal state (true = ON) ===
-    bool IsOn() const { return isOn; }
-
+    
     // === Main logic loop: checks for new signals ===
     void Evaluate() {
-        if (!receiver.available()) return;
-
+        if (!receiver.available()) { return; }
+        
         RadioSignal signal = RadioSignal::Create(&receiver);
         
-        if (!signal.IsValid()) {
+        if (!IsValidSignal(signal)) {
             signal.Print(); // Show invalid signal for debugging
             return;
         }
 
-        if (IsRepeatedSignal(signal)) return;
+        if (IsRepeatedSignal(signal)) { return; }
         
-        if (!signal.IsHardcoded() && IsDuplicateSignal(signal)) return;
+        if (Target == Config::Unit::TargetGlobal && IsDuplicateSignal(signal)) {
+            return;
+        }
 
         signal.Print(); // Show valid, accepted signal
 
-        if (isOn != signal.IsOn) {
-            isOn = signal.IsOn;
-            hasChanged = true;
-        }
+        hasChanged = true;
     }
 
 private:
@@ -52,16 +52,18 @@ private:
     unsigned long payloadMemory[Config::Radio::MemorySize] = { 0 };
     uint8_t payloadMemoryIndex = 0;
     unsigned long previousPayload = 0;
+    unsigned long debounce = 0;
+    
 
     // === Internal state ===
-    bool isOn = false;
     bool hasChanged = false;
 
     // === Filter: ignore exact same signal repeated back-to-back ===
     bool IsRepeatedSignal(const RadioSignal& signal) {
-        if (previousPayload == signal.Payload) return true;
+        bool isRepeated = previousPayload == signal.Payload && millis() < debounce;
         previousPayload = signal.Payload;
-        return false;
+        debounce = millis() + Config::Radio::Debounce;
+        return isRepeated;
     }
 
     // === Filter: ignore signals seen within the memory window ===
@@ -76,6 +78,22 @@ private:
         payloadMemoryIndex = (payloadMemoryIndex + 1) % Config::Radio::MemorySize;
 
         return false;
+    }
+    
+    bool IsValidSignal(const RadioSignal& signal) {
+        if (!signal.IsValid()) { return false; }
+        
+        if(signal.Payload == Config::Unit::UnitId1) { Target = Config::Unit::Target1; } else
+        if(signal.Payload == Config::Unit::UnitId2) { Target = Config::Unit::Target2; } else
+        if(signal.Payload == Config::Unit::UnitId3) { Target = Config::Unit::Target3; } else
+        if(signal.Payload == Config::Unit::UnitId4) { Target = Config::Unit::Target4; } else
+        { Target = Config::Unit::TargetGlobal; }
+        
+        if(signal.Channel == Config::Radio::ChannelOff) { State = Config::State::Off; }
+        if(signal.Channel == Config::Radio::ChannelOn) { State = Config::State::On; }
+        if(signal.Channel == Config::Radio::ChannelToggle) { State = Config::State::Toggle; }
+        
+        return true;
     }
 };
 

@@ -1,11 +1,15 @@
+//#define DEBUG
+//#define REMOTE_CTRL_SETUP
+//#define DEVICE_1
+//#define DEVICE_2
+//#define DEVICE_3
+
 #include <RCSwitch.h>
 
 #include "Config.h"
 #include "RotaryTrigger.h"
 #include "RadioSignal.h"
 
-//#define DEBUG
-//#define REMOTE_CTRL_SETUP
 
 #ifdef DEBUG
 RotaryTrigger rotaryTrigger;
@@ -23,6 +27,8 @@ void setup() {
   #ifdef DEBUG
     Serial.begin(9600);
   #endif
+  
+  delay(200);
 
   randomSeed(analogRead(A0)); // Seed for RF signal randomness
 
@@ -46,8 +52,9 @@ void loop() {
 
 #ifdef REMOTE_CTRL_SETUP
   // This is only used to send a signal continuously for setting-up a remote control.
-  delay(random(0, 101));
-  static RadioSignal sig = RadioSignal::Create(false);
+  delay(200);
+  static RadioSignal sig = RadioSignal::Create(Config::Radio::ChannelToggle);
+  sig.Payload = Config::Unit::UnitId3; 
   sig.Send(&sender);
   return;
 #endif
@@ -81,12 +88,12 @@ void loop() {
 void SendOn() {
   isOn = true;
   digitalWrite(Config::State::LedPin, HIGH);
-  RadioSignal::Create(true).Send(&sender);
+  RadioSignal::Create(Config::Radio::ChannelOn).Send(&sender);
 }
 
 // === Send OFF Signal ===
 void SendOff() {
   isOn = false;
   digitalWrite(Config::State::LedPin, LOW);
-  RadioSignal::Create(false).Send(&sender);
+  RadioSignal::Create(Config::Radio::ChannelOff).Send(&sender);
 }
